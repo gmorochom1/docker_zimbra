@@ -10,33 +10,16 @@ RANDOMVIRUS=$(date +%s|sha256sum|base64|head -c 10)
 
 ## Intalacion del servidor DNS ##
 echo "Configurando servidor DNS"
-sed "s/-u/-4 -u/g" /etc/default/bind9 > /etc/default/bind9.new
-mv /etc/default/bind9.new /etc/default/bind9
-rm /etc/bind/named.conf.options
-cat <<EOF >>/etc/bind/named.conf.options
-options {
-directory "/var/cache/bind";
-listen-on { $CONTAINERIP; }; # ns1 dirección IP privada: escucha solo en una red privada
-allow-transfer { none; }; # deshabilita transferencias de zona de manera predeterminada
-forwarders {
-8.8.8.8;
-8.8.4.4;
-};
-auth-nxdomain no; # conform to RFC1035
-#listen-on-v6 { any; };
-};
+mv /etc/dnsmasq.conf /etc/dnsmasq.conf.old
+cat <<EOF >>/etc/dnsmasq.conf
+server=8.8.8.8
+listen-address=127.0.0.1
+domain=$DOMAIN
+mx-host=$DOMAIN,$HOSTNAME.$DOMAIN,0
+address=/$HOSTNAME.$DOMAIN/$CONTAINERIP
+user=root
 EOF
-mv /etc/bind/db.domain /etc/bind/db.$DOMAIN
-
-sed -i 's/\$DOMAIN/'$DOMAIN'/g' \
-  /etc/bind/db.$DOMAIN \
-  /etc/bind/named.conf.local
-
-sed -i 's/\$HOSTNAME/'$HOSTNAME'/g' /etc/bind/db.$DOMAIN
-
-sed -i 's/\$CONTAINERIP/'$CONTAINERIP'/g' /etc/bind/db.$DOMAIN
-
-sudo service bind9 restart
+sudo service dnsmasq restart
 
 ##Creamos el archivo de configuración de Zimbra Colaboration ##
 touch /opt/zimbra-install/installZimbraScript
@@ -96,7 +79,7 @@ SMTPNOTIFY="yes"
 SMTPSOURCE="admin@$DOMAIN"
 SNMPNOTIFY="yes"
 SNMPTRAPHOST="$HOSTNAME.$DOMAIN"
-SPELLURL="http://$HOSTNAME.$1:7780/aspell.php"
+SPELLURL="http://$HOSTNAME.$DOMAIN:7780/aspell.php"
 STARTSERVERS="yes"
 SYSTEMMEMORY="3.8"
 TRAINSAHAM="ham.$RANDOMHAM@$DOMAIN"
@@ -111,7 +94,7 @@ ZIMBRA_REQ_SECURITY="yes"
 ldap_bes_searcher_password="$PASSWORD"
 ldap_dit_base_dn_config="cn=zimbra"
 ldap_nginx_password="$PASSWORD"
-ldap_url="ldap://$HOSTNAME.$1:389"
+ldap_url="ldap://$HOSTNAME.$DOMAIN:389"
 mailboxd_directory="/opt/zimbra/mailboxd"
 mailboxd_keystore="/opt/zimbra/mailboxd/etc/keystore"
 mailboxd_keystore_password="$PASSWORD"
@@ -141,21 +124,23 @@ zimbraWebProxy="FALSE"
 zimbra_ldap_userdn="uid=zimbra,cn=admins,cn=zimbra"
 zimbra_require_interprocess_security="1"
 zimbra_server_hostname="$HOSTNAME.$DOMAIN"
-##Paquetes que vamos a instalar ##
 INSTALL_PACKAGES="zimbra-core zimbra-ldap zimbra-logger zimbra-mta zimbra-snmp zimbra-store zimbra-apache zimbra-spell zimbra-memcached zimbra-proxy"
 EOF
 ##Instalacion de Zimbra Collaboration ##
-echo "Descargando Zimbra Collaboration 8.7.11"
-wget -O /opt/zimbra-install/zimbra-zcs-8.7.11.tar.gz https://files.zimbra.com/downloads/8.7.11_GA/zcs-8.7.11_GA_1854.UBUNTU16_64.20170531151956.tgz
+echo "Descargando Zimbra Collaboration"
+wget -O /opt/zimbra-install/zimbra-zcs-8.8.7.tar.gz https://files.zimbra.com/downloads/8.8.7_GA/zcs-8.8.7_GA_1964.UBUNTU16_64.20180223145016.tgz
 
 echo "Extrayendo archivos del fichero"
-tar xzvf /opt/zimbra-install/zimbra-zcs-8.7.11.tar.gz -C /opt/zimbra-install/
+tar xzvf /opt/zimbra-install/zimbra-zcs-8.8.7.tar.gz -C /opt/zimbra-install/
 
 echo "Instalacion solo el software de Zimbra Collaboration"
 cd /opt/zimbra-install/zcs-* && ./install.sh -s < /opt/zimbra-install/llaves
 
 echo "Añadiendo la configuración a la instalación de Zimbra Collaboration"
 /opt/zimbra/libexec/zmsetup.pl -c /opt/zimbra-install/installZimbraScript
+
+su - zimbra -c 'zmcontrol restart'
+echo "Felicidades !!! Ya puede acceder a Zimbra Collaboration Server"
 
 if [[ $1 == "-d" ]]; then
   while true; do sleep 1000; done
