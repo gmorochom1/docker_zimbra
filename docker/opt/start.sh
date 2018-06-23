@@ -23,7 +23,7 @@ sudo service dnsmasq restart
 
 ##Creamos el archivo de configuración de Zimbra Colaboration ##
 touch /opt/zimbra-install/installZimbraScript
-cat <<EOF >/opt/zimbra-install/installZimbraScript
+cat <<EOF >>/opt/zimbra-install/installZimbraScript
 AVDOMAIN="$DOMAIN"
 AVUSER="admin@$DOMAIN"
 CREATEADMIN="admin@$DOMAIN"
