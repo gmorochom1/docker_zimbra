@@ -5,26 +5,19 @@
 FROM ubuntu:16.04
 MAINTAINER gmorochom <gmorochom987@gmail.com>
 
+RUN echo "resolvconf resolvconf/linkify-resolvconf boolean false" | debconf-set-selections
+
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
   wget \
+  apt-utils \
+  dialog \
   openssh-client \
-  bind9 \
-  bind9utils \
-  bind9-doc \
+  software-properties-common \
+  dnsmasq \
   dnsutils \
-  libidn11 \
-  libpcre3 \
-  libgmp10 \
-  libexpat1 \
-  libstdc++6 \
-  libperl5.18 \
-  libaio1 \
-  netcat-openbsd \
-  pax \
-  resolvconf \
-  sqlite3 \
+  net-tools \
   sudo \
-  sysstat \
+  rsyslog \
   unzip
 
 VOLUME ["/opt/zimbra"]
