@@ -1,2 +1,2 @@
-# docker_zimbra_
+# docker_zimbra
 Docker con Zimbra
